@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Settings
@@ -36,6 +37,7 @@ import live.mehiz.mpvkt.ui.theme.CyberColors
 fun CyberTopBar(
     title: String,
     modifier: Modifier = Modifier,
+    onBackClick: (() -> Unit)? = null,
     onSearchClick: () -> Unit = {},
     onSettingsClick: () -> Unit = {},
     onMoreClick: () -> Unit = {},
@@ -47,12 +49,24 @@ fun CyberTopBar(
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Text(
-            text = title,
-            color = CyberColors.TextSecondary,
-            fontSize = 11.sp,
-            fontWeight = FontWeight.Medium,
-        )
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            if (onBackClick != null) {
+                CyberIconButton(
+                    icon = Icons.AutoMirrored.Filled.ArrowBack,
+                    contentDescription = "Back",
+                    onClick = onBackClick,
+                )
+            }
+            Text(
+                text = title,
+                color = CyberColors.TextSecondary,
+                fontSize = 12.sp,
+                fontWeight = FontWeight.Medium,
+            )
+        }
 
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             CyberIconButton(

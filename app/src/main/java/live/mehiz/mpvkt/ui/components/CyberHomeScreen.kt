@@ -2,7 +2,7 @@
  * SPDX-License-Identifier: AGPL-3.0-or-later
  *
  * Cyber UI - Home Screen
- * الشاشة الرئيسية الكاملة
+ * الشاشة الرئيسية مع التنقل الكامل
  */
 
 package live.mehiz.mpvkt.ui.components
@@ -26,6 +26,7 @@ import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.VideoLibrary
+import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -38,11 +39,13 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import live.mehiz.mpvkt.ui.cyber.CyberFavoritesScreen
+import live.mehiz.mpvkt.ui.cyber.CyberHistoryScreen
+import live.mehiz.mpvkt.ui.cyber.CyberLibraryScreen
+import live.mehiz.mpvkt.ui.cyber.CyberPlaylistsScreen
 import live.mehiz.mpvkt.ui.theme.CyberColors
+import live.mehiz.mpvkt.ui.utils.LocalBackStack
 
-/**
- * بيانات الفيديو
- */
 data class CyberVideoItem(
     val id: String,
     val title: String,
@@ -50,9 +53,6 @@ data class CyberVideoItem(
     val resolution: String? = null,
 )
 
-/**
- * الشاشة الرئيسية بأسلوب Cyber
- */
 @Composable
 fun CyberHomeScreen(
     modifier: Modifier = Modifier,
@@ -60,7 +60,8 @@ fun CyberHomeScreen(
     onSettingsClick: () -> Unit = {},
     onPlayClick: (String) -> Unit = {},
 ) {
-    // Dock items
+    val backstack = LocalBackStack.current
+
     val dockItems = remember {
         listOf(
             CyberDockItem("playlist", "قائمة", Icons.Default.PlayArrow),
@@ -71,7 +72,6 @@ fun CyberHomeScreen(
         )
     }
 
-    // فيديوهات تجريبية
     val displayVideos = remember {
         listOf(
             CyberVideoItem("1", "Interstellar", "2:49:00", "4K"),
@@ -90,7 +90,6 @@ fun CyberHomeScreen(
                 .fillMaxSize()
                 .padding(horizontal = 16.dp, vertical = 12.dp),
         ) {
-            // الشريط العلوي
             CyberTopBar(
                 title = "مشغل الوسائط",
                 onSettingsClick = onSettingsClick,
@@ -98,12 +97,10 @@ fun CyberHomeScreen(
 
             Spacer(modifier = Modifier.height(12.dp))
 
-            // المحتوى - قابل للتمرير
             LazyColumn(
                 modifier = Modifier.weight(1f),
                 verticalArrangement = Arrangement.spacedBy(16.dp),
             ) {
-                // Hero Banner
                 item {
                     CyberHeroBanner(
                         title = "The Last of Us",
@@ -114,7 +111,6 @@ fun CyberHomeScreen(
                     )
                 }
 
-                // عنوان المجلدات
                 item {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
@@ -135,7 +131,6 @@ fun CyberHomeScreen(
                     }
                 }
 
-                // المجلدات
                 item {
                     LazyRow(
                         horizontalArrangement = Arrangement.spacedBy(12.dp),
@@ -150,7 +145,6 @@ fun CyberHomeScreen(
                     }
                 }
 
-                // عنوان الأحدث
                 item {
                     Text(
                         text = "🔥 الأحدث في المكتبة",
@@ -160,7 +154,6 @@ fun CyberHomeScreen(
                     )
                 }
 
-                // قائمة الفيديوهات
                 item {
                     LazyRow(
                         horizontalArrangement = Arrangement.spacedBy(14.dp),
@@ -177,25 +170,29 @@ fun CyberHomeScreen(
                     }
                 }
 
-                // مساحة إضافية أسفل
                 item {
                     Spacer(modifier = Modifier.height(80.dp))
                 }
             }
 
-            // الشريط السفلي
             CyberDockBar(
                 items = dockItems,
                 activeId = activeDockId,
-                onItemClick = { activeDockId = it },
+                onItemClick = { id ->
+                    activeDockId = id
+                    when (id) {
+                        "home" -> { /* already here */ }
+                        "library" -> backstack.add(CyberLibraryScreen)
+                        "favorites" -> backstack.add(CyberFavoritesScreen)
+                        "playlist" -> backstack.add(CyberPlaylistsScreen)
+                        "settings" -> onSettingsClick()
+                    }
+                },
             )
         }
     }
 }
 
-/**
- * بطاقة مجلد بسيطة
- */
 @Composable
 fun CyberFolderCard(
     folderName: String,
@@ -213,7 +210,7 @@ fun CyberFolderCard(
                 .padding(16.dp),
             horizontalAlignment = Alignment.Start,
         ) {
-            androidx.compose.material3.Icon(
+            Icon(
                 imageVector = Icons.Default.Folder,
                 contentDescription = null,
                 tint = CyberColors.CyanNeon,
