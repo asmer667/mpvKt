@@ -2,11 +2,12 @@
  * SPDX-License-Identifier: AGPL-3.0-or-later
  *
  * Cyber UI - Home Screen
- * الشاشة الرئيسية مع التنقل الكامل
+ * الشاشة الرئيسية مع البيانات الحقيقية
  */
 
 package live.mehiz.mpvkt.ui.components
 
+import android.content.Intent
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -29,6 +30,7 @@ import androidx.compose.material.icons.filled.VideoLibrary
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -36,31 +38,41 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.net.toUri
+import live.mehiz.mpvkt.domain.media.MediaFolder
+import live.mehiz.mpvkt.domain.media.MediaLibrary
+import live.mehiz.mpvkt.domain.media.MediaVideo
 import live.mehiz.mpvkt.ui.cyber.CyberFavoritesScreen
-import live.mehiz.mpvkt.ui.cyber.CyberHistoryScreen
 import live.mehiz.mpvkt.ui.cyber.CyberLibraryScreen
 import live.mehiz.mpvkt.ui.cyber.CyberPlaylistsScreen
+import live.mehiz.mpvkt.ui.player.PlayerActivity
 import live.mehiz.mpvkt.ui.theme.CyberColors
 import live.mehiz.mpvkt.ui.utils.LocalBackStack
-
-data class CyberVideoItem(
-    val id: String,
-    val title: String,
-    val duration: String? = null,
-    val resolution: String? = null,
-)
 
 @Composable
 fun CyberHomeScreen(
     modifier: Modifier = Modifier,
-    onVideoClick: (String) -> Unit = {},
     onSettingsClick: () -> Unit = {},
-    onPlayClick: (String) -> Unit = {},
 ) {
+    val context = LocalContext.current
     val backstack = LocalBackStack.current
+
+    // حالة البيانات
+    var videos by remember { mutableStateOf<List<MediaVideo>>(emptyList()) }
+    var folders by remember { mutableStateOf<List<MediaFolder>>(emptyList()) }
+    var isLoading by remember { mutableStateOf(true) }
+
+    // جلب البيانات
+    LaunchedEffect(Unit) {
+        isLoading = true
+        videos = MediaLibrary.getAllVideos(context)
+        folders = MediaLibrary.getFolders(context)
+        isLoading = false
+    }
 
     val dockItems = remember {
         listOf(
@@ -72,17 +84,10 @@ fun CyberHomeScreen(
         )
     }
 
-    val displayVideos = remember {
-        listOf(
-            CyberVideoItem("1", "Interstellar", "2:49:00", "4K"),
-            CyberVideoItem("2", "The Batman", "2:57:00", "4K"),
-            CyberVideoItem("3", "Dune", "2:35:12", "4K"),
-            CyberVideoItem("4", "Inception", "2:28:16", "4K"),
-            CyberVideoItem("5", "The Witcher", "1:22:00", "4K"),
-        )
-    }
-
     var activeDockId by remember { mutableStateOf("home") }
+
+    // الفيديو المميز (الأحدث)
+    val featuredVideo = videos.firstOrNull()
 
     CyberGlowBackground(modifier = modifier) {
         Column(
@@ -101,72 +106,119 @@ fun CyberHomeScreen(
                 modifier = Modifier.weight(1f),
                 verticalArrangement = Arrangement.spacedBy(16.dp),
             ) {
-                item {
-                    CyberHeroBanner(
-                        title = "The Last of Us",
-                        subtitle = "مغامرة - دراما - إثارة",
-                        duration = "1:52:03",
-                        badge = "4K HDR",
-                        onPlayClick = { onPlayClick("hero") },
-                    )
+                // Hero Banner - الفيديو المميز
+                if (featuredVideo != null) {
+                    item {
+                        CyberHeroBanner(
+                            title = featuredVideo.title,
+                            subtitle = featuredVideo.sizeFormatted,
+                            duration = featuredVideo.durationFormatted,
+                            badge = featuredVideo.resolution.ifBlank { "VIDEO" },
+                            onPlayClick = { playVideo(context, featuredVideo.path) },
+                        )
+                    }
                 }
 
-                item {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
+                // عنوان المجلدات
+                if (folders.isNotEmpty()) {
+                    item {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Text(
+                                text = "المجلدات",
+                                color = Color.White,
+                                fontSize = 16.sp,
+                                fontWeight = FontWeight.Bold,
+                            )
+                            Text(
+                                text = "${folders.size} مجلد",
+                                color = CyberColors.CyanNeon,
+                                fontSize = 11.sp,
+                            )
+                        }
+                    }
+
+                    // المجلدات
+                    item {
+                        LazyRow(
+                            horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        ) {
+                            items(folders.take(10)) { folder ->
+                                CyberFolderCard(
+                                    folderName = folder.name,
+                                    itemCount = folder.videoCount,
+                                    onClick = { },
+                                )
+                            }
+                        }
+                    }
+                }
+
+                // عنوان الأحدث
+                if (videos.isNotEmpty()) {
+                    item {
                         Text(
-                            text = "المكتبة",
+                            text = "🔥 الأحدث في المكتبة",
                             color = Color.White,
-                            fontSize = 16.sp,
+                            fontSize = 15.sp,
                             fontWeight = FontWeight.Bold,
                         )
+                    }
+
+                    // الفيديوهات
+                    item {
+                        LazyRow(
+                            horizontalArrangement = Arrangement.spacedBy(14.dp),
+                            contentPadding = PaddingValues(vertical = 8.dp),
+                        ) {
+                            items(videos.take(20)) { video ->
+                                CyberVideoCard(
+                                    title = video.title,
+                                    duration = video.durationFormatted,
+                                    resolution = video.resolution.ifBlank { "HD" },
+                                    onClick = { playVideo(context, video.path) },
+                                )
+                            }
+                        }
+                    }
+                }
+
+                // حالة فارغة
+                if (videos.isEmpty() && !isLoading) {
+                    item {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(32.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                        ) {
+                            Text(
+                                text = "لا توجد فيديوهات",
+                                color = Color.White,
+                                fontSize = 16.sp,
+                                fontWeight = FontWeight.Bold,
+                            )
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Text(
+                                text = "أضف ملفات فيديو للمكتبة",
+                                color = CyberColors.TextTertiary,
+                                fontSize = 12.sp,
+                            )
+                        }
+                    }
+                }
+
+                // حالة تحميل
+                if (isLoading) {
+                    item {
                         Text(
-                            text = "عرض الكل",
+                            text = "جاري تحميل المكتبة...",
                             color = CyberColors.CyanNeon,
-                            fontSize = 11.sp,
+                            fontSize = 12.sp,
                         )
-                    }
-                }
-
-                item {
-                    LazyRow(
-                        horizontalArrangement = Arrangement.spacedBy(12.dp),
-                    ) {
-                        items(4) { index ->
-                            CyberFolderCard(
-                                folderName = listOf("أفلام", "مسلسلات", "أنمي", "وثائقيات")[index],
-                                itemCount = listOf(47, 32, 16, 12)[index],
-                                onClick = { },
-                            )
-                        }
-                    }
-                }
-
-                item {
-                    Text(
-                        text = "🔥 الأحدث في المكتبة",
-                        color = Color.White,
-                        fontSize = 15.sp,
-                        fontWeight = FontWeight.Bold,
-                    )
-                }
-
-                item {
-                    LazyRow(
-                        horizontalArrangement = Arrangement.spacedBy(14.dp),
-                        contentPadding = PaddingValues(vertical = 8.dp),
-                    ) {
-                        items(displayVideos) { video ->
-                            CyberVideoCard(
-                                title = video.title,
-                                duration = video.duration,
-                                resolution = video.resolution,
-                                onClick = { onVideoClick(video.id) },
-                            )
-                        }
                     }
                 }
 
@@ -181,7 +233,7 @@ fun CyberHomeScreen(
                 onItemClick = { id ->
                     activeDockId = id
                     when (id) {
-                        "home" -> { /* already here */ }
+                        "home" -> { }
                         "library" -> backstack.add(CyberLibraryScreen)
                         "favorites" -> backstack.add(CyberFavoritesScreen)
                         "playlist" -> backstack.add(CyberPlaylistsScreen)
@@ -191,6 +243,15 @@ fun CyberHomeScreen(
             )
         }
     }
+}
+
+/**
+ * تشغيل فيديو
+ */
+private fun playVideo(context: android.content.Context, path: String) {
+    val intent = Intent(Intent.ACTION_VIEW, path.toUri())
+    intent.setClass(context, PlayerActivity::class.java)
+    context.startActivity(intent)
 }
 
 @Composable
@@ -206,8 +267,7 @@ fun CyberFolderCard(
         cornerRadius = 16.dp,
     ) {
         Column(
-            modifier = Modifier
-                .padding(16.dp),
+            modifier = Modifier.padding(16.dp),
             horizontalAlignment = Alignment.Start,
         ) {
             Icon(
@@ -222,6 +282,7 @@ fun CyberFolderCard(
                 color = Color.White,
                 fontSize = 13.sp,
                 fontWeight = FontWeight.Bold,
+                maxLines = 1,
             )
             Text(
                 text = "$itemCount عنصر",
