@@ -56,7 +56,7 @@ fun CyberHeroBanner(
     Box(
         modifier = modifier
             .fillMaxWidth()
-            .height(220.dp)
+            .height(180.dp)
             .cyberHeroGlow()
             .clip(RoundedCornerShape(24.dp))
             .border(

@@ -60,7 +60,7 @@ fun CyberDockBar(
     Box(
         modifier = modifier
             .fillMaxWidth()
-            .height(60.dp)
+            .height(56.dp)
             .cyberDockGlow()
             .clip(RoundedCornerShape(30.dp))
             .background(CyberColors.GlassSurfaceStrong)

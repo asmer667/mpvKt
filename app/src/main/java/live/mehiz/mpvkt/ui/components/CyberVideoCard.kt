@@ -48,8 +48,8 @@ fun CyberVideoCard(
     isFavorite: Boolean = false,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
-    width: Dp = 160.dp,
-    height: Dp = 220.dp,
+    width: Dp = 140.dp,
+    height: Dp = 200.dp,
 ) {
     Box(
         modifier = modifier
