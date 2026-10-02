@@ -3,7 +3,6 @@ name: Build mpvKt APK
 on:
   push:
     branches: [ main, master ]
-  pull_request:
   workflow_dispatch:
 
 permissions:
@@ -28,14 +27,6 @@ jobs:
         with:
           distribution: temurin
           java-version: '17'
-
-      - name: Setup Android SDK
-        uses: android-actions/setup-android@v3
-
-      - name: Install NDK & Tools
-        run: |
-          yes | sdkmanager --licenses > /dev/null 2>&1 || true
-          sdkmanager "ndk;27.3.13750724" "cmake;3.22.1" "platforms;android-35" "build-tools;35.0.0"
 
       - name: Make gradlew executable
         run: chmod +x ./gradlew
