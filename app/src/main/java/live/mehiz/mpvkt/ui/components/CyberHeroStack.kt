@@ -145,7 +145,6 @@ fun CyberHeroStack(
                         offsetY = offsetY,
                         scale = scale,
                         alpha = alpha,
-                        zIndex = (stackItems.size - index).toFloat(),
                         onClick = { onItemClick(item.id) },
                         modifier = Modifier.fillMaxSize(),
                     )
@@ -163,7 +162,6 @@ private fun CyberStackCard(
     offsetY: Float,
     scale: Float,
     alpha: Float,
-    zIndex: Float,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -176,7 +174,7 @@ private fun CyberStackCard(
                 this.scaleX = scale
                 this.scaleY = scale
                 this.alpha = alpha
-                this.zIndex = zIndex
+                // zIndex unsupported in graphicsLayer
                 cameraDistance = 12f * density
             }
             .stackCardGlow(rotationZ)
