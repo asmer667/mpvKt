@@ -1,12 +1,13 @@
 /*
  * SPDX-License-Identifier: AGPL-3.0-or-later
  *
- * Cyber UI - Home Screen
- * الشاشة الرئيسية مع البيانات الحقيقية
+ * Cyber UI - Home Screen (Final)
+ * الشاشة الرئيسية الكاملة بكل المكونات
  */
 
 package live.mehiz.mpvkt.ui.components
 
+import android.content.Context
 import android.content.Intent
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -47,6 +48,7 @@ import live.mehiz.mpvkt.domain.media.MediaFolder
 import live.mehiz.mpvkt.domain.media.MediaLibrary
 import live.mehiz.mpvkt.domain.media.MediaVideo
 import live.mehiz.mpvkt.ui.cyber.CyberFavoritesScreen
+import live.mehiz.mpvkt.ui.cyber.CyberHistoryScreen
 import live.mehiz.mpvkt.ui.cyber.CyberLibraryScreen
 import live.mehiz.mpvkt.ui.cyber.CyberPlaylistsScreen
 import live.mehiz.mpvkt.ui.player.PlayerActivity
@@ -61,12 +63,11 @@ fun CyberHomeScreen(
     val context = LocalContext.current
     val backstack = LocalBackStack.current
 
-    // حالة البيانات
     var videos by remember { mutableStateOf<List<MediaVideo>>(emptyList()) }
     var folders by remember { mutableStateOf<List<MediaFolder>>(emptyList()) }
     var isLoading by remember { mutableStateOf(true) }
+    var selectedCategory by remember { mutableStateOf("all") }
 
-    // جلب البيانات
     LaunchedEffect(Unit) {
         isLoading = true
         videos = MediaLibrary.getAllVideos(context)
@@ -84,10 +85,18 @@ fun CyberHomeScreen(
         )
     }
 
-    var activeDockId by remember { mutableStateOf("home") }
+    val categories = remember {
+        listOf(
+            CyberCategory("all", "الكل"),
+            CyberCategory("recent", "الأحدث"),
+            CyberCategory("movies", "أفلام"),
+            CyberCategory("series", "مسلسلات"),
+            CyberCategory("anime", "أنمي"),
+            CyberCategory("docs", "وثائقيات"),
+        )
+    }
 
-    // الفيديو المميز (الأحدث)
-    val featuredVideo = videos.firstOrNull()
+    var activeDockId by remember { mutableStateOf("home") }
 
     CyberGlowBackground(modifier = modifier) {
         Column(
@@ -100,26 +109,65 @@ fun CyberHomeScreen(
                 onSettingsClick = onSettingsClick,
             )
 
-            Spacer(modifier = Modifier.height(12.dp))
+            Spacer(modifier = Modifier.height(10.dp))
 
             LazyColumn(
                 modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(16.dp),
+                verticalArrangement = Arrangement.spacedBy(14.dp),
             ) {
-                // Hero Banner - الفيديو المميز
-                if (featuredVideo != null) {
+                // ═══════════════════════════════════════
+                // Hero Stack
+                // ═══════════════════════════════════════
+                if (videos.isNotEmpty()) {
                     item {
-                        CyberHeroBanner(
-                            title = featuredVideo.title,
-                            subtitle = featuredVideo.sizeFormatted,
-                            duration = featuredVideo.durationFormatted,
-                            badge = featuredVideo.resolution.ifBlank { "VIDEO" },
-                            onPlayClick = { playVideo(context, featuredVideo.path) },
+                        CyberHeroStack(
+                            items = videos.take(5).map { video ->
+                                CyberHeroItem(
+                                    id = video.id.toString(),
+                                    title = video.title,
+                                    subtitle = video.sizeFormatted,
+                                    duration = video.durationFormatted,
+                                    badge = video.resolution.ifBlank { "VIDEO" },
+                                )
+                            },
+                            onPlayClick = { id ->
+                                val video = videos.find { it.id.toString() == id }
+                                video?.let { playVideo(context, it.path) }
+                            },
+                            onItemClick = { id ->
+                                val video = videos.find { it.id.toString() == id }
+                                video?.let { playVideo(context, it.path) }
+                            },
                         )
                     }
                 }
 
-                // عنوان المجلدات
+                // ═══════════════════════════════════════
+                // Stats Widget
+                // ═══════════════════════════════════════
+                item {
+                    CyberStatsWidget(
+                        title = "التخزين المحلي",
+                        usedText = "${videos.sumOf { it.size } / (1024 * 1024 * 1024)} GB",
+                        totalText = "128 GB",
+                        percentage = 0.68f,
+                    )
+                }
+
+                // ═══════════════════════════════════════
+                // Category Bar
+                // ═══════════════════════════════════════
+                item {
+                    CyberCategoryBar(
+                        categories = categories,
+                        selectedId = selectedCategory,
+                        onSelect = { selectedCategory = it },
+                    )
+                }
+
+                // ═══════════════════════════════════════
+                // Folders
+                // ═══════════════════════════════════════
                 if (folders.isNotEmpty()) {
                     item {
                         Row(
@@ -130,7 +178,7 @@ fun CyberHomeScreen(
                             Text(
                                 text = "المجلدات",
                                 color = Color.White,
-                                fontSize = 16.sp,
+                                fontSize = 15.sp,
                                 fontWeight = FontWeight.Bold,
                             )
                             Text(
@@ -141,7 +189,6 @@ fun CyberHomeScreen(
                         }
                     }
 
-                    // المجلدات
                     item {
                         LazyRow(
                             horizontalArrangement = Arrangement.spacedBy(12.dp),
@@ -157,7 +204,9 @@ fun CyberHomeScreen(
                     }
                 }
 
-                // عنوان الأحدث
+                // ═══════════════════════════════════════
+                // Recent Videos
+                // ═══════════════════════════════════════
                 if (videos.isNotEmpty()) {
                     item {
                         Text(
@@ -168,7 +217,6 @@ fun CyberHomeScreen(
                         )
                     }
 
-                    // الفيديوهات
                     item {
                         LazyRow(
                             horizontalArrangement = Arrangement.spacedBy(14.dp),
@@ -186,7 +234,7 @@ fun CyberHomeScreen(
                     }
                 }
 
-                // حالة فارغة
+                // Empty state
                 if (videos.isEmpty() && !isLoading) {
                     item {
                         Column(
@@ -211,11 +259,10 @@ fun CyberHomeScreen(
                     }
                 }
 
-                // حالة تحميل
                 if (isLoading) {
                     item {
                         Text(
-                            text = "جاري تحميل المكتبة...",
+                            text = "⚡ جاري تحميل المكتبة...",
                             color = CyberColors.CyanNeon,
                             fontSize = 12.sp,
                         )
@@ -245,10 +292,7 @@ fun CyberHomeScreen(
     }
 }
 
-/**
- * تشغيل فيديو
- */
-private fun playVideo(context: android.content.Context, path: String) {
+private fun playVideo(context: Context, path: String) {
     val intent = Intent(Intent.ACTION_VIEW, path.toUri())
     intent.setClass(context, PlayerActivity::class.java)
     context.startActivity(intent)

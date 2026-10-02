@@ -1,8 +1,7 @@
 /*
  * SPDX-License-Identifier: AGPL-3.0-or-later
  *
- * Cyber UI - 3D Card Component
- * بطاقة ثلاثية الأبعاد بتأثير ضغط وإضاءة حافة متوهجة
+ * Cyber UI - 3D Card (with Bloom)
  */
 
 package live.mehiz.mpvkt.ui.components
@@ -29,13 +28,6 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import live.mehiz.mpvkt.ui.theme.CyberColors
 
-/**
- * بطاقة 3D بتأثير:
- * - تصغير عند الضغط
- * - ميل طفيف (rotationX)
- * - إضاءة حافة علوية
- * - حدود نيونية
- */
 @Composable
 fun CyberCard(
     onClick: () -> Unit,
